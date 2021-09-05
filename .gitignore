@@ -1,0 +1,6 @@
+# Virtual environment folders and files
+bin/
+etc/
+lib/
+pyvenv.cfg
+share/
