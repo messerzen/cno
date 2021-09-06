@@ -4,3 +4,4 @@ etc/
 lib/
 pyvenv.cfg
 share/
+data/
