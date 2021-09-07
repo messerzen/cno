@@ -12,13 +12,13 @@ cnaes_path = config['FILE_PATHS']['cnaes_path']
 
 
 # DROP TABLES 
-drop_table_cno_cnaes = '''
+drop_staging_table_cno_cnaes = '''
 DROP TABLE IF EXISTS cno_cnaes
 '''
-drop_table_cno_vinculos = '''
+drop_staging_table_cno_vinculos = '''
 DROP TABLE IF EXISTS cno_vinculos
 '''
-drop_table_cno_obras = '''
+drop_staging_table_cno_obras = '''
 DROP TABLE IF EXISTS cno_obras
 '''
 drop_table_municipios = '''
@@ -29,9 +29,9 @@ drop_table_cnaes = '''
 DROP TABLE IF EXISTS cnaes
 '''
 
-# CREATE TABLES
-create_table_cno_cnae = '''
-CREATE TABLE IF NOT EXISTS cno_cnaes(
+# CREATE STAGING TABLES
+create_staging_table_cno_cnae = '''
+CREATE TABLE IF NOT EXISTS staging_cno_cnaes(
     cnaes_key       SERIAL         PRIMARY KEY,
     cno             VARCHAR(250)   NOT NULL,
     cnae            INT            NOT NULL,
@@ -39,8 +39,8 @@ CREATE TABLE IF NOT EXISTS cno_cnaes(
 );
 '''
 
-create_table_cno_vinculos = '''
-CREATE TABLE IF NOT EXISTS cno_vinculos(
+create_staging_table_cno_vinculos = '''
+CREATE TABLE IF NOT EXISTS staging_cno_vinculos(
     vinculos_key    SERIAL         PRIMARY KEY,
     cno             VARCHAR(250)   NOT NULL,
     dt_inicio       DATE,
@@ -51,8 +51,8 @@ CREATE TABLE IF NOT EXISTS cno_vinculos(
 )
 '''
 
-create_table_cno_obras = '''
-CREATE TABLE IF NOT EXISTS cno_obras(
+create_staging_table_cno_obras = '''
+CREATE TABLE IF NOT EXISTS staging_cno_obras(
     register_key    SERIAL        PRIMARY KEY,
     cno             VARCHAR(15)   NOT NULL,
     cod_pais        VARCHAR(5),
@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS cno_obras(
 )
 '''
 
+# CREATE DIMENSION TABLES
 create_table_municipios = '''
 CREATE TABLE IF NOT EXISTS municipios(
     codigo_ibge     INT           PRIMARY KEY,
@@ -103,24 +104,24 @@ CREATE TABLE IF NOT EXISTS cnaes(
 )
 '''
 
-# COPY DATA
-copy_cno_cnaes = f'''
-COPY cno_cnaes (cno, cnae, dt_registro)
+# COPY DATA TO STAGING TABLES
+copy_staging_cno_cnaes = f'''
+COPY staging_cno_cnaes (cno, cnae, dt_registro)
 FROM {cno_cnaes_path}
 DELIMITER ','
 CSV HEADER
 '''
 
-copy_cno_vinculos = f'''
-COPY cno_vinculos (cno, dt_inicio, dt_fim, dt_registro, cod_quali, ni_resp)
+copy_staging_cno_vinculos = f'''
+COPY staging_cno_vinculos (cno, dt_inicio, dt_fim, dt_registro, cod_quali, ni_resp)
 FROM {cno_vinculos_path}
 DELIMITER ','
 CSV HEADER
 ENCODING 'latin1'
 '''
 
-copy_cno_obras = f'''
-COPY cno_obras (cno, cod_pais, nom_pais, dt_inicio, dt_inicio_resp, dt_registro, cno_vinculado, cep,
+copy_staging_cno_obras = f'''
+COPY staging_cno_obras (cno, cod_pais, nom_pais, dt_inicio, dt_inicio_resp, dt_registro, cno_vinculado, cep,
         ni_resp, cod_qualiresp, nome_obra, cod_mun_siafi, nom_mun, tipo_logr, logr, nro_logr, bairro,
         estado, cx_postal, compl, und_obra, area_total, cod_sit, dt_sit, resp_nome)
 FROM {cno_obras_path}
@@ -129,6 +130,7 @@ CSV HEADER
 ENCODING 'latin1'
 '''
 
+# COPY DATA TO DIMENSION TABLES
 copy_municipios = f'''
 COPY municipios (codigo_ibge, nome, latitude, longitude, capital,
                 codigo_uf, cod_mun_siafi, ddd, fuso_horario)
@@ -144,9 +146,9 @@ CSV HEADER
 ENCODING 'latin1'
 '''
 
-
-drop_tables_queries = [drop_table_cno_cnaes, drop_table_cno_vinculos, 
-                        drop_table_cno_obras, drop_table_municipios, drop_table_cnaes]
-create_tables_queries = [create_table_cno_cnae, create_table_cno_vinculos,
-                         create_table_cno_obras, create_table_municipios, create_table_cnaes]
-copy_data_queries = [copy_cno_cnaes, copy_cno_vinculos, copy_cno_obras, copy_municipios, copy_cnaes]
+# LIST OF QUERIES
+drop_tables_queries = [drop_staging_table_cno_cnaes, drop_staging_table_cno_vinculos, 
+                        drop_staging_table_cno_obras, drop_table_municipios, drop_table_cnaes]
+create_tables_queries = [create_staging_table_cno_cnae, create_staging_table_cno_vinculos,
+                         create_staging_table_cno_obras, create_table_municipios, create_table_cnaes]
+copy_data_queries = [copy_staging_cno_cnaes, copy_staging_cno_vinculos, copy_staging_cno_obras, copy_municipios, copy_cnaes]
