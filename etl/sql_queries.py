@@ -38,7 +38,7 @@ create_staging_table_cno_cnae = '''
 CREATE TABLE IF NOT EXISTS staging_cno_cnaes(
     cnaes_key       SERIAL         PRIMARY KEY,
     cno             VARCHAR(250)   NOT NULL,
-    cnae            INT            NOT NULL,
+    cod_cnae        INT            NOT NULL,
     dt_registro     DATE  
 );
 '''
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS municipios(
 create_table_cnaes = '''
 CREATE TABLE IF NOT EXISTS cnaes(
     cod_cnae        INT           PRIMARY KEY,
-    desc_cnae       VARCHAR(250)  NOT NULL    
+    descricao       VARCHAR(250)  NOT NULL    
 )
 '''
 
@@ -139,14 +139,14 @@ create_fact_obras = '''CREATE TABLE IF NOT EXISTS obras(
     dt_reg_vinc     DATE,
     quali_vinc      VARCHAR(250),
     ni_resp_vinc    VARCHAR(250),
-    cnae            VARCHAR(10),
+    cod_cnae        INT,
     dt_reg_cnae     DATE
 )
 '''
 
 # COPY DATA TO STAGING TABLES
 copy_staging_cno_cnaes = f'''
-COPY staging_cno_cnaes (cno, cnae, dt_registro)
+COPY staging_cno_cnaes (cno, cod_cnae, dt_registro)
 FROM {cno_cnaes_path}
 DELIMITER ','
 CSV HEADER
@@ -179,7 +179,7 @@ DELIMITER ','
 CSV HEADER
 '''
 copy_cnaes = f'''
-COPY cnaes (cod_cnae, desc_cnae)
+COPY cnaes (cod_cnae, descricao)
 FROM {cnaes_path}
 DELIMITER ';'
 CSV HEADER
@@ -192,7 +192,7 @@ INSERT INTO obras (cno, nom_pais, dt_ini_obra, dt_ini_resp, dt_reg,
                     cno_vinculado, cep, ni_resp, qualiresp, nome_obra, cod_mun_siafi,
                     tipo_logr, logr, nro_logr, bairro, estado, cx_postal, compl, und_obra, 
                     area_total, sit_cad, dt_sit, resp_nome, dt_ini_vinc, dt_fim_vinc, 
-                    dt_reg_vinc, quali_vinc, ni_resp_vinc, cnae, dt_reg_cnae)
+                    dt_reg_vinc, quali_vinc, ni_resp_vinc, cod_cnae, dt_reg_cnae)
 
 SELECT o.cno            AS      cno,
        o.nom_pais       AS      nom_pais,
@@ -244,7 +244,7 @@ SELECT o.cno            AS      cno,
             ELSE 'Não Informado'
             END         AS      quali_vinc,
        v.ni_resp        AS      ni_resp_vinc,
-       c.cnae           AS      cnae,
+       c.cod_cnae       AS      cod_cnae,
        c.dt_registro    AS      dt_reg_cnae
 FROM staging_cno_obras o
 LEFT JOIN staging_cno_vinculos v
