@@ -1,4 +1,4 @@
-from sql_queries import drop_tables_queries, create_tables_queries
+from sql_queries import drop_staging_tables_queries, create_staging_tables_queries
 import psycopg2 
 
 def create_database():
@@ -33,7 +33,7 @@ def drop_tables(conn, cur):
         conn (obj): connection object to database
         cur (obj): cursor to interact with database
     """
-    for query in drop_tables_queries:
+    for query in drop_staging_tables_queries:
         cur.execute(query)
         conn.commit()
 
@@ -44,7 +44,7 @@ def create_tables(conn, cur):
         conn (obj): connection object to database
         cur (obj): cursor to interact with database
     """
-    for query in create_tables_queries:
+    for query in create_staging_tables_queries:
         cur.execute(query)
         conn.commit()
 

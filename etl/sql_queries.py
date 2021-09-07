@@ -146,9 +146,15 @@ CSV HEADER
 ENCODING 'latin1'
 '''
 
-# LIST OF QUERIES
-drop_tables_queries = [drop_staging_table_cno_cnaes, drop_staging_table_cno_vinculos, 
-                        drop_staging_table_cno_obras, drop_table_municipios, drop_table_cnaes]
-create_tables_queries = [create_staging_table_cno_cnae, create_staging_table_cno_vinculos,
-                         create_staging_table_cno_obras, create_table_municipios, create_table_cnaes]
-copy_data_queries = [copy_staging_cno_cnaes, copy_staging_cno_vinculos, copy_staging_cno_obras, copy_municipios, copy_cnaes]
+# LIST OF STAGING QUERIES
+drop_staging_tables_queries = [drop_staging_table_cno_cnaes, drop_staging_table_cno_vinculos, 
+                        drop_staging_table_cno_obras]
+create_staging_tables_queries = [create_staging_table_cno_cnae, create_staging_table_cno_vinculos,
+                         create_staging_table_cno_obras]
+copy_staging_data_queries = [copy_staging_cno_cnaes, copy_staging_cno_vinculos, 
+                            copy_staging_cno_obras]
+                        
+# LIST OF DIMENSION QUERIES
+drop_dimension_tables_queries = [drop_table_municipios, drop_table_cnaes]
+create_dimension_tables_queries = [create_table_municipios, create_table_cnaes]
+coyp_staging_data_queries = [copy_municipios, copy_cnaes]
