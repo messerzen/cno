@@ -12,17 +12,18 @@ cnaes_path = config['FILE_PATHS']['cnaes_path']
 
 
 # DROP STAGING TABLES 
-drop_staging_table_cno_cnaes = '''
-DROP TABLE IF EXISTS cno_cnaes
-'''
+
 drop_staging_table_cno_vinculos = '''
-DROP TABLE IF EXISTS cno_vinculos
+DROP TABLE IF EXISTS cno_staging_vinculos
 '''
 drop_staging_table_cno_obras = '''
-DROP TABLE IF EXISTS cno_obras
+DROP TABLE IF EXISTS staging_cno_obras
 '''
 
 # DROP DW TABLES
+drop_table_cno_cnaes = '''
+DROP TABLE IF EXISTS cno_cnaes
+'''
 drop_table_municipios = '''
 DROP TABLE IF EXISTS municipios
 '''
@@ -32,20 +33,13 @@ DROP TABLE IF EXISTS cnaes
 drop_table_obras = '''
 DROP TABLE IF EXISTS obras
 '''
-
-# CREATE STAGING TABLES
-create_staging_table_cno_cnae = '''
-CREATE TABLE IF NOT EXISTS staging_cno_cnaes(
-    cnaes_key       SERIAL         PRIMARY KEY,
-    cno             VARCHAR(250)   NOT NULL,
-    cod_cnae        INT            NOT NULL,
-    dt_registro     DATE  
-);
+drop_table_cno_vinculos = '''
+DROP TABLE IF EXISTS cno_vinculos
 '''
 
+# CREATE STAGING TABLES
 create_staging_table_cno_vinculos = '''
-CREATE TABLE IF NOT EXISTS staging_cno_vinculos(
-    vinculos_key    SERIAL         PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS staging_cno_vinculos (
     cno             VARCHAR(250)   NOT NULL,
     dt_inicio       DATE,
     dt_fim          DATE,
@@ -56,8 +50,7 @@ CREATE TABLE IF NOT EXISTS staging_cno_vinculos(
 '''
 
 create_staging_table_cno_obras = '''
-CREATE TABLE IF NOT EXISTS staging_cno_obras(
-    register_key    SERIAL        PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS staging_cno_obras (
     cno             VARCHAR(15)   NOT NULL,
     cod_pais        VARCHAR(5),
     nom_pais        VARCHAR(50),
@@ -87,6 +80,15 @@ CREATE TABLE IF NOT EXISTS staging_cno_obras(
 '''
 
 # CREATE DIMENSION TABLES
+create_table_cno_cnaes = '''
+CREATE TABLE IF NOT EXISTS cno_cnaes(
+    cnaes_key       SERIAL         PRIMARY KEY,
+    cno             VARCHAR(250)   NOT NULL,
+    cod_cnae        INT            NOT NULL,
+    dt_registro     DATE  
+);
+'''
+
 create_table_municipios = '''
 CREATE TABLE IF NOT EXISTS municipios(
     codigo_ibge     INT           PRIMARY KEY,
@@ -106,6 +108,17 @@ CREATE TABLE IF NOT EXISTS cnaes(
     cod_cnae        INT           PRIMARY KEY,
     descricao       VARCHAR(250)  NOT NULL    
 )
+'''
+
+create_table_cno_vinculos = '''
+CREATE TABLE IF NOT EXISTS cno_vinculos (
+    cno             VARCHAR(15),
+    dt_ini_vinc     DATE,
+    dt_fim_vinc     DATE,
+    dt_reg_vinc     DATE,
+    quali_vinc      VARCHAR(250),
+    ni_resp_vinc    VARCHAR(250)
+);
 '''
 
 # CREATE FACT TABLE
@@ -133,31 +146,17 @@ create_fact_obras = '''CREATE TABLE IF NOT EXISTS obras(
     area_total      DECIMAL,
     sit_cad         VARCHAR(50),
     dt_sit          DATE,
-    resp_nome       VARCHAR(250),
-    dt_ini_vinc     DATE,
-    dt_fim_vinc     DATE,
-    dt_reg_vinc     DATE,
-    quali_vinc      VARCHAR(250),
-    ni_resp_vinc    VARCHAR(250),
-    cod_cnae        INT,
-    dt_reg_cnae     DATE
-)
+    resp_nome       VARCHAR(250)
+);
 '''
 
 # COPY DATA TO STAGING TABLES
-copy_staging_cno_cnaes = f'''
-COPY staging_cno_cnaes (cno, cod_cnae, dt_registro)
-FROM {cno_cnaes_path}
-DELIMITER ','
-CSV HEADER
-'''
-
 copy_staging_cno_vinculos = f'''
 COPY staging_cno_vinculos (cno, dt_inicio, dt_fim, dt_registro, cod_quali, ni_resp)
 FROM {cno_vinculos_path}
 DELIMITER ','
 CSV HEADER
-ENCODING 'latin1'
+ENCODING 'latin1';
 '''
 
 copy_staging_cno_obras = f'''
@@ -167,10 +166,16 @@ COPY staging_cno_obras (cno, cod_pais, nom_pais, dt_inicio, dt_inicio_resp, dt_r
 FROM {cno_obras_path}
 DELIMITER ','
 CSV HEADER
-ENCODING 'latin1'
+ENCODING 'latin1';
 '''
 
 # COPY DATA TO DIMENSION TABLES
+copy_cno_cnaes = f'''
+COPY cno_cnaes (cno, cod_cnae, dt_registro)
+FROM {cno_cnaes_path}
+DELIMITER ','
+CSV HEADER
+'''
 copy_municipios = f'''
 COPY municipios (codigo_ibge, nome, latitude, longitude, capital,
                 codigo_uf, cod_mun_siafi, ddd, fuso_horario)
@@ -186,14 +191,32 @@ CSV HEADER
 ENCODING 'latin1'
 '''
 
+insert_data_vinculos_table = '''
+INSERT INTO cno_vinculos (cno, dt_ini_vinc, dt_fim_vinc,dt_reg_vinc, quali_vinc, ni_resp_vinc)
+SELECT DISTINCT 
+       v.cno            AS      cno,  
+       v.dt_inicio      AS      dt_ini_vinc,
+       v.dt_fim         AS      dt_fim_vinc,
+       v.dt_registro    AS      dt_reg_vinc,
+       CASE WHEN v.cod_quali = 70  THEN 'Proprietário do Imóvel'
+            WHEN v.cod_quali = 57  THEN 'Dono da Obra'
+            WHEN v.cod_quali = 64  THEN 'Incorporadora de Construção' 
+            WHEN v.cod_quali = 53  THEN 'Pessoa Jurídica Construtora'
+            WHEN v.cod_quali = 111 THEN 'Sociedade Líder de Consórcio'
+            WHEN v.cod_quali = 109 THEN 'Consórcio'
+            WHEN v.cod_quali = 110 THEN 'Construção em nome coletivo'
+            ELSE 'Não Informado'
+            END         AS      quali_vinc,
+       v.ni_resp        AS      ni_resp_vinc
+FROM staging_cno_vinculos v;
+'''
+
 # FACT TABLE DATA INGEST
 insert_data_fact_table = '''
 INSERT INTO obras (cno, nom_pais, dt_ini_obra, dt_ini_resp, dt_reg,       
                     cno_vinculado, cep, ni_resp, qualiresp, nome_obra, cod_mun_siafi,
                     tipo_logr, logr, nro_logr, bairro, estado, cx_postal, compl, und_obra, 
-                    area_total, sit_cad, dt_sit, resp_nome, dt_ini_vinc, dt_fim_vinc, 
-                    dt_reg_vinc, quali_vinc, ni_resp_vinc, cod_cnae, dt_reg_cnae)
-
+                    area_total, sit_cad, dt_sit, resp_nome)
 SELECT o.cno            AS      cno,
        o.nom_pais       AS      nom_pais,
        o.dt_inicio      AS      dt_ini_obra,
@@ -230,39 +253,26 @@ SELECT o.cno            AS      cno,
             ELSE 'Não Informado'
             END         AS      sit_cad,
        o.dt_sit         AS      dt_sit,
-       o.resp_nome      AS      resp_nome,
-       v.dt_inicio      AS      dt_ini_vinc,
-       v.dt_fim         AS      dt_fim_vinc,
-       v.dt_registro    AS      dt_reg_vinc,
-       CASE WHEN v.cod_quali = 70  THEN 'Proprietário do Imóvel'
-            WHEN v.cod_quali = 57  THEN 'Dono da Obra'
-            WHEN v.cod_quali = 64  THEN 'Incorporadora de Construção' 
-            WHEN v.cod_quali = 53  THEN 'Pessoa Jurídica Construtora'
-            WHEN v.cod_quali = 111 THEN 'Sociedade Líder de Consórcio'
-            WHEN v.cod_quali = 109 THEN 'Consórcio'
-            WHEN v.cod_quali = 110 THEN 'Construção em nome coletivo'
-            ELSE 'Não Informado'
-            END         AS      quali_vinc,
-       v.ni_resp        AS      ni_resp_vinc,
-       c.cod_cnae       AS      cod_cnae,
-       c.dt_registro    AS      dt_reg_cnae
-FROM staging_cno_obras o
-LEFT JOIN staging_cno_vinculos v
-ON o.cno = v.cno
-LEFT JOIN staging_cno_cnaes c
-ON o.cno = c.cno
+       o.resp_nome      AS      resp_nome
+FROM staging_cno_obras o;
 '''
 
 
 # LIST OF STAGING QUERIES
-drop_staging_tables_queries = [drop_staging_table_cno_cnaes, drop_staging_table_cno_vinculos, 
+drop_staging_tables_queries = [drop_staging_table_cno_vinculos, 
                         drop_staging_table_cno_obras]
-create_staging_tables_queries = [create_staging_table_cno_cnae, create_staging_table_cno_vinculos,
+
+create_staging_tables_queries = [create_staging_table_cno_vinculos,
                          create_staging_table_cno_obras]
-copy_staging_data_queries = [copy_staging_cno_cnaes, copy_staging_cno_vinculos, 
-                            copy_staging_cno_obras]
+
+copy_staging_data_queries = [copy_staging_cno_vinculos, copy_staging_cno_obras]
                         
 # LIST OF DATA WAREHOUSE QUERIES
-drop_dw_tables_queries = [drop_table_municipios, drop_table_cnaes, drop_table_obras]
-create_dw_tables_queries = [create_table_municipios, create_table_cnaes, create_fact_obras]
-data_ingestion_queries = [copy_municipios, copy_cnaes, insert_data_fact_table, insert_data_fact_table]
+drop_dw_tables_queries = [drop_table_cno_cnaes, drop_table_municipios, drop_table_cnaes,
+                         drop_table_obras, drop_table_cno_vinculos]
+
+create_dw_tables_queries = [create_table_cno_cnaes, create_table_municipios, create_table_cnaes,
+                            create_fact_obras, create_table_cno_vinculos]
+
+data_ingestion_queries = [copy_cno_cnaes, copy_municipios, copy_cnaes, insert_data_fact_table,
+                         insert_data_vinculos_table]
