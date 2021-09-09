@@ -19,6 +19,9 @@ DROP TABLE IF EXISTS cno_staging_vinculos
 drop_staging_table_cno_obras = '''
 DROP TABLE IF EXISTS staging_cno_obras
 '''
+drop_staging_table_cnaes = '''
+DROP TABLE IF EXISTS staging_cnaes
+'''
 
 # DROP DW TABLES
 drop_table_cno_cnaes = '''
@@ -78,6 +81,12 @@ CREATE TABLE IF NOT EXISTS staging_cno_obras (
     resp_nome       VARCHAR(250)
 )
 '''
+create_staging_table_cnaes = '''
+CREATE TABLE IF NOT EXISTS staging_cnaes(
+    cod_cnae        INT,
+    descricao       VARCHAR(250)  NOT NULL    
+)
+'''
 
 # CREATE DIMENSION TABLES
 create_table_cno_cnaes = '''
@@ -103,13 +112,6 @@ CREATE TABLE IF NOT EXISTS municipios(
 )
 '''
 
-create_table_cnaes = '''
-CREATE TABLE IF NOT EXISTS cnaes(
-    cod_cnae        INT           PRIMARY KEY,
-    descricao       VARCHAR(250)  NOT NULL    
-)
-'''
-
 create_table_cno_vinculos = '''
 CREATE TABLE IF NOT EXISTS cno_vinculos (
     cno             VARCHAR(15),
@@ -120,6 +122,14 @@ CREATE TABLE IF NOT EXISTS cno_vinculos (
     ni_resp_vinc    VARCHAR(250)
 );
 '''
+
+create_table_cnaes = '''
+CREATE TABLE IF NOT EXISTS cnaes (
+    cod_cnae        INT           PRIMARY KEY,
+    descricao       VARCHAR(250)  NOT NULL
+);
+'''
+
 
 # CREATE FACT TABLE
 create_fact_obras = '''CREATE TABLE IF NOT EXISTS obras(
@@ -169,6 +179,14 @@ CSV HEADER
 ENCODING 'latin1';
 '''
 
+copy_staging_cnaes = f'''
+COPY staging_cnaes (cod_cnae, descricao)
+FROM {cnaes_path}
+DELIMITER ';'
+CSV HEADER
+ENCODING 'latin1'
+'''
+
 # COPY DATA TO DIMENSION TABLES
 copy_cno_cnaes = f'''
 COPY cno_cnaes (cno, cod_cnae, dt_registro)
@@ -182,13 +200,6 @@ COPY municipios (codigo_ibge, nome, latitude, longitude, capital,
 FROM {municipios_path}
 DELIMITER ','
 CSV HEADER
-'''
-copy_cnaes = f'''
-COPY cnaes (cod_cnae, descricao)
-FROM {cnaes_path}
-DELIMITER ';'
-CSV HEADER
-ENCODING 'latin1'
 '''
 
 insert_data_vinculos_table = '''
@@ -209,6 +220,16 @@ SELECT DISTINCT
             END         AS      quali_vinc,
        v.ni_resp        AS      ni_resp_vinc
 FROM staging_cno_vinculos v;
+'''
+
+insert_data_cnaes = '''
+INSERT INTO cnaes (cod_cnae, descricao)
+SELECT DISTINCT
+       cc.cod_cnae,
+       sc.descricao
+FROM cno_cnaes cc
+LEFT JOIN staging_cnaes sc
+ON cc.cod_cnae = sc.cod_cnae
 '''
 
 # FACT TABLE DATA INGEST
@@ -259,20 +280,20 @@ FROM staging_cno_obras o;
 
 
 # LIST OF STAGING QUERIES
-drop_staging_tables_queries = [drop_staging_table_cno_vinculos, 
+drop_staging_tables_queries = [drop_staging_table_cno_vinculos, drop_staging_table_cnaes,
                         drop_staging_table_cno_obras]
 
-create_staging_tables_queries = [create_staging_table_cno_vinculos,
+create_staging_tables_queries = [create_staging_table_cno_vinculos, create_staging_table_cnaes,
                          create_staging_table_cno_obras]
 
-copy_staging_data_queries = [copy_staging_cno_vinculos, copy_staging_cno_obras]
+copy_staging_data_queries = [copy_staging_cno_vinculos, copy_staging_cno_obras, copy_staging_cnaes]
                         
 # LIST OF DATA WAREHOUSE QUERIES
 drop_dw_tables_queries = [drop_table_cno_cnaes, drop_table_municipios, drop_table_cnaes,
                          drop_table_obras, drop_table_cno_vinculos]
 
-create_dw_tables_queries = [create_table_cno_cnaes, create_table_municipios, create_table_cnaes,
-                            create_fact_obras, create_table_cno_vinculos]
+create_dw_tables_queries = [create_table_cno_cnaes, create_table_municipios, 
+                            create_fact_obras, create_table_cno_vinculos, create_table_cnaes]
 
-data_ingestion_queries = [copy_cno_cnaes, copy_municipios, copy_cnaes, insert_data_fact_table,
-                         insert_data_vinculos_table]
+data_ingestion_queries = [copy_cno_cnaes, copy_municipios, copy_staging_cnaes, insert_data_fact_table,
+                         insert_data_vinculos_table, insert_data_cnaes]
