@@ -1,5 +1,6 @@
 from sql_queries import drop_dw_tables_queries, create_dw_tables_queries
 import psycopg2
+from database_credentials import credentials
 
 def drop_dw_tables(conn, cur):
     """Drop (if exists) the fact and the dimensions table of the datawarehouse.
@@ -35,7 +36,9 @@ def main():
     - Execute drop_dw_tables 
     - Execute create_dw_tables
     '''
-    conn = psycopg2.connect(host='127.0.0.1', dbname='cno', user='dataengineer', password='udacity')
+
+    db_username, db_password = credentials()
+    conn = psycopg2.connect(host='127.0.0.1', dbname='cno', user=db_username, password=db_password)
     cur = conn.cursor()
 
     drop_dw_tables(conn, cur)

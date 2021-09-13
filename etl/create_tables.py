@@ -1,12 +1,15 @@
 from sql_queries import drop_staging_tables_queries, create_staging_tables_queries
-import psycopg2 
+import psycopg2
+from database_credentials import credentials
 
 def create_database():
     """
     Creates the database on postgre and returns a connection and cursor to database   
     """
     # connect to postgres
-    conn = psycopg2.connect(host='127.0.0.1', dbname='postgres', user='dataengineer', password='udacity')
+    db_username, db_password = credentials()
+
+    conn = psycopg2.connect(host='127.0.0.1', dbname='postgres', user=db_username, password=db_password)
     conn.set_session(autocommit=True)
     cur = conn.cursor()
 
@@ -21,7 +24,7 @@ def create_database():
     conn.close()
 
     # connect to the cno database
-    conn = psycopg2.connect(host='127.0.0.1', dbname='cno', user='dataengineer', password='udacity')
+    conn = psycopg2.connect(host='127.0.0.1', dbname='cno', user=db_username, password=db_password)
     cur = conn.cursor()
 
     return conn, cur
