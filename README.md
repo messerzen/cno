@@ -9,7 +9,7 @@ The CNAEs csv file is avaliable within this project.
 
 Download the content provided in the link below and extract the csv files in the zip file.
 
-Replace the csv filepaths in the `etl_config.cfg` file.
+Replace the csv filepaths in the `etl_config.cfg` file and the database credentials in the `credentials_cfg`.
 ____
 **Staging Tables**
 
